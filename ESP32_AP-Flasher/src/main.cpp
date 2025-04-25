@@ -32,6 +32,9 @@
 #ifdef HAS_BLE_WRITER
 #include "ble_writer.h"
 #endif
+#ifdef HAS_BUTTONS
+#include "buttons.h"
+#endif
 
 util::Timer intervalContentRunner(seconds(1));
 util::Timer intervalSysinfo(seconds(5));
@@ -67,6 +70,9 @@ void setup() {
 #endif
 
     xTaskCreate(ledTask, "ledhandler", 2000, NULL, 2, NULL);
+#ifdef HAS_BUTTONS
+    xTaskCreate(buttonTask, "buttonhandler", 2000, NULL, 2, NULL);
+#endif
     vTaskDelay(10 / portTICK_PERIOD_MS);
 
 #if defined(OPENEPAPERLINK_MINI_AP_PCB) || defined(OPENEPAPERLINK_NANO_AP_PCB)
