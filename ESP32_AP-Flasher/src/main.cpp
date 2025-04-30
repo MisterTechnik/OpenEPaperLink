@@ -70,9 +70,7 @@ void setup() {
 #endif
 
     xTaskCreate(ledTask, "ledhandler", 2000, NULL, 2, NULL);
-#ifdef HAS_BUTTONS
-    xTaskCreate(buttonTask, "buttonhandler", 2000, NULL, 2, NULL);
-#endif
+
     vTaskDelay(10 / portTICK_PERIOD_MS);
 
 #if defined(OPENEPAPERLINK_MINI_AP_PCB) || defined(OPENEPAPERLINK_NANO_AP_PCB)
@@ -165,6 +163,10 @@ void setup() {
     // We'll need to start the 'usbflasher' task for boards with a second (USB) port. This can be used as a 'flasher' interface, using a python script on the host
     xTaskCreate(usbFlasherTask, "usbflasher", 10000, NULL, 5, NULL);
 #else
+
+#ifdef HAS_BUTTONS
+    xTaskCreate(buttonTask, "buttonhandler", 10000, NULL, 2, NULL);
+#endif
 
 #ifdef ETHERNET_CLK_MODE
     if (!(ETHERNET_CLK_MODE == ETH_CLOCK_GPIO0_IN || ETHERNET_CLK_MODE == ETH_CLOCK_GPIO0_OUT))

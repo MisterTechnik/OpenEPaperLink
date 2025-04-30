@@ -1,5 +1,7 @@
-#include <ArduinoJson.h>
 #include "buttons.h"
+
+#include <ArduinoJson.h>
+
 #include "commstructs.h"
 #include "contentmanager.h"
 #include "settings.h"
@@ -50,20 +52,6 @@ void uploadToEpaperTag(const char* jsonFile) {
     }
 }
 
-void handleButtonPress(int btn) {
-    switch (btn) {
-        case 1:
-            uploadToEpaperTag("/buttons/btn1.json");
-            break;
-        case 2:
-            uploadToEpaperTag("/buttons/btn2.json");
-            break;
-        case 3:
-            uploadToEpaperTag("/buttons/btn2.json");
-            break;
-    }
-}
-
 void buttonTask(void* parameter) {
     pinMode(BTN_1, INPUT_PULLUP);
     pinMode(BTN_2, INPUT_PULLUP);
@@ -71,15 +59,15 @@ void buttonTask(void* parameter) {
 
     while (1) {
         if (digitalRead(BTN_1) == LOW) {
-            handleButtonPress(1);
+            uploadToEpaperTag("/buttons/btn1.json");
             vTaskDelay(500 / portTICK_PERIOD_MS);
         }
         if (digitalRead(BTN_2) == LOW) {
-            handleButtonPress(2);
+            uploadToEpaperTag("/buttons/btn2.json");
             vTaskDelay(500 / portTICK_PERIOD_MS);
         }
         if (digitalRead(BTN_3) == LOW) {
-            handleButtonPress(3);
+            uploadToEpaperTag("/buttons/btn3.json");
             vTaskDelay(500 / portTICK_PERIOD_MS);
         }
         vTaskDelay(50 / portTICK_PERIOD_MS);
