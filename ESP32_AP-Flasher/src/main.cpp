@@ -165,7 +165,7 @@ void setup() {
 #else
 
 #ifdef HAS_BUTTONS
-    xTaskCreate(buttonTask, "buttonhandler", 10000, NULL, 2, NULL);
+    xTaskCreate(buttonTask, "buttonhandler", 6000, NULL, 5, NULL);
 #endif
 
 #ifdef ETHERNET_CLK_MODE

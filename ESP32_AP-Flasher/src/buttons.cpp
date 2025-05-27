@@ -9,6 +9,9 @@
 #include "tag_db.h"
 #include "web.h"
 
+const int buttonPins[BUTTON_COUNT] = BUTTON_PINS;
+const char* buttonJsons[BUTTON_COUNT] = BUTTON_JSONS;
+
 void uploadToEpaperTag(const char* jsonFile) {
     File file = contentFS->open(jsonFile, "r");
     if (!file) {
@@ -22,54 +25,54 @@ void uploadToEpaperTag(const char* jsonFile) {
         // Failed to parse JSON
         return;
     }
-    String dst = doc["mac"] | "";
-    if (dst.length() != 16) {
-        // Invalid MAC address length
-        return;
-    }
-    uint8_t mac[8];
-    if (hex2mac(dst, mac)) {
-        xSemaphoreTake(fsMutex, portMAX_DELAY);
-        File file = contentFS->open("/current/" + dst + ".json", "w");
-        if (!file) {
-            // Failed to create file
-            xSemaphoreGive(fsMutex);
-            return;
-        }
+    auto macArray = doc["mac"].as<JsonArray>();
+    if (!macArray.isNull()) {
         String jsonString;
         serializeJson(doc["json"], jsonString);
-        file.print(jsonString);
-        file.close();
-        xSemaphoreGive(fsMutex);
-        tagRecord *taginfo = tagRecord::findByMAC(mac);
-        if (taginfo != nullptr) {
-            uint32_t ttl = doc["ttl"].as<uint32_t>();
-            taginfo->modeConfigJson = "{\"filename\":\"/current/" + dst + ".json\",\"interval\":\"" + String(ttl) + "\"}";
-            taginfo->contentMode = 19;
-            taginfo->nextupdate = 0;
-            wsSendTaginfo(mac, SYNC_USERCFG);
+        for (JsonVariant v : macArray) {
+            String dst = v.as<const char*>();
+            if (dst.length() == 16) {
+                uint8_t mac[8];
+                if (hex2mac(dst, mac)) {
+                    xSemaphoreTake(fsMutex, portMAX_DELAY);
+                    File file = contentFS->open("/current/" + dst + ".json", "w");
+                    if (!file) {
+                        // Failed to create file
+                        xSemaphoreGive(fsMutex);
+                        continue;
+                    }
+                    file.print(jsonString);
+                    file.close();
+                    xSemaphoreGive(fsMutex);
+                    tagRecord *taginfo = tagRecord::findByMAC(mac);
+                    if (taginfo != nullptr) {
+                        uint32_t ttl = doc["ttl"].as<uint32_t>();
+                        taginfo->modeConfigJson = "{\"filename\":\"/current/" + dst + ".json\",\"interval\":\"" + String(ttl) + "\"}";
+                        taginfo->contentMode = 19;
+                        taginfo->nextupdate = 0;
+                        wsSendTaginfo(mac, SYNC_USERCFG);
+                    }
+                }
+            }
         }
     }
 }
 
 void buttonTask(void* parameter) {
-    pinMode(BTN_1, INPUT_PULLUP);
-    pinMode(BTN_2, INPUT_PULLUP);
-    pinMode(BTN_3, INPUT_PULLUP);
+    bool btnPrev[BUTTON_COUNT];
+    for (int i = 0; i < BUTTON_COUNT; ++i) {
+        pinMode(buttonPins[i], INPUT_PULLUP);
+        btnPrev[i] = HIGH;
+    }
 
     while (1) {
-        if (digitalRead(BTN_1) == LOW) {
-            uploadToEpaperTag("/buttons/btn1.json");
-            vTaskDelay(500 / portTICK_PERIOD_MS);
+        for (int i = 0; i < BUTTON_COUNT; ++i) {
+            bool btnCurr = digitalRead(buttonPins[i]);
+            if (btnPrev[i] == HIGH && btnCurr == LOW) {
+                uploadToEpaperTag(buttonJsons[i]);
+            }
+            btnPrev[i] = btnCurr;
         }
-        if (digitalRead(BTN_2) == LOW) {
-            uploadToEpaperTag("/buttons/btn2.json");
-            vTaskDelay(500 / portTICK_PERIOD_MS);
-        }
-        if (digitalRead(BTN_3) == LOW) {
-            uploadToEpaperTag("/buttons/btn3.json");
-            vTaskDelay(500 / portTICK_PERIOD_MS);
-        }
-        vTaskDelay(50 / portTICK_PERIOD_MS);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
